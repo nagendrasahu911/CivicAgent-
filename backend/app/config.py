@@ -5,12 +5,29 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-DATA_DIR.mkdir(exist_ok=True)
-UPLOADS_DIR = BASE_DIR / "uploads"
-UPLOADS_DIR.mkdir(exist_ok=True)
 
-DB_PATH = DATA_DIR / "civicsaathi.db"
+# Check if running in a serverless environment like Vercel or AWS Lambda
+IS_SERVERLESS = bool(os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+
+if IS_SERVERLESS:
+    DATA_DIR = Path("/tmp/data")
+    DATA_DIR.mkdir(exist_ok=True, parents=True)
+    UPLOADS_DIR = Path("/tmp/uploads")
+    UPLOADS_DIR.mkdir(exist_ok=True, parents=True)
+    DB_PATH = DATA_DIR / "civicsaathi.db"
+    
+    # Copy pre-seeded SQLite database to writable /tmp directory if not present
+    SRC_DB = BASE_DIR / "data" / "civicsaathi.db"
+    if not DB_PATH.exists() and SRC_DB.exists():
+        import shutil
+        shutil.copy2(SRC_DB, DB_PATH)
+else:
+    DATA_DIR = BASE_DIR / "data"
+    DATA_DIR.mkdir(exist_ok=True)
+    UPLOADS_DIR = BASE_DIR / "uploads"
+    UPLOADS_DIR.mkdir(exist_ok=True)
+    DB_PATH = DATA_DIR / "civicsaathi.db"
+
 DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 JWT_SECRET = os.getenv("CIVICSAATHI_JWT_SECRET", "civicsaathi-ai-super-secret-key-2026-hackathon")
